@@ -4,6 +4,7 @@
 #include <set>
 #include <utility>
 #include <algorithm>
+#include <stdexcept>
 
 template<class Key, class Compare = std::less<Key>>
 class ESet {
@@ -11,8 +12,57 @@ private:
     std::set<Key, Compare> data;
 
 public:
-    using iterator = typename std::set<Key, Compare>::iterator;
-    using const_iterator = typename std::set<Key, Compare>::const_iterator;
+    class iterator {
+    private:
+        typename std::set<Key, Compare>::iterator it;
+        const std::set<Key, Compare>* container;
+
+    public:
+        iterator() : container(nullptr) {}
+        iterator(typename std::set<Key, Compare>::iterator i, const std::set<Key, Compare>* c)
+            : it(i), container(c) {}
+
+        const Key& operator*() const {
+            if (it == container->end()) {
+                throw std::out_of_range("Dereferencing end iterator");
+            }
+            return *it;
+        }
+
+        iterator& operator++() {
+            if (it != container->end()) {
+                ++it;
+            }
+            return *this;
+        }
+
+        iterator operator++(int) {
+            iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        iterator& operator--() {
+            if (it != container->begin()) {
+                --it;
+            }
+            return *this;
+        }
+
+        iterator operator--(int) {
+            iterator tmp = *this;
+            --(*this);
+            return tmp;
+        }
+
+        bool operator==(const iterator& other) const {
+            return it == other.it;
+        }
+
+        bool operator!=(const iterator& other) const {
+            return it != other.it;
+        }
+    };
 
     ESet() = default;
     ~ESet() = default;
@@ -37,7 +87,8 @@ public:
 
     template<class... Args>
     std::pair<iterator, bool> emplace(Args&&... args) {
-        return data.emplace(std::forward<Args>(args)...);
+        auto result = data.emplace(std::forward<Args>(args)...);
+        return {iterator(result.first, &data), result.second};
     }
 
     size_t erase(const Key& key) {
@@ -45,7 +96,7 @@ public:
     }
 
     iterator find(const Key& key) const {
-        return const_cast<std::set<Key, Compare>&>(data).find(key);
+        return iterator(const_cast<std::set<Key, Compare>&>(data).find(key), &data);
     }
 
     size_t range(const Key& l, const Key& r) const {
@@ -60,19 +111,19 @@ public:
     }
 
     iterator lower_bound(const Key& key) const {
-        return const_cast<std::set<Key, Compare>&>(data).lower_bound(key);
+        return iterator(const_cast<std::set<Key, Compare>&>(data).lower_bound(key), &data);
     }
 
     iterator upper_bound(const Key& key) const {
-        return const_cast<std::set<Key, Compare>&>(data).upper_bound(key);
+        return iterator(const_cast<std::set<Key, Compare>&>(data).upper_bound(key), &data);
     }
 
     iterator begin() const noexcept {
-        return const_cast<std::set<Key, Compare>&>(data).begin();
+        return iterator(const_cast<std::set<Key, Compare>&>(data).begin(), &data);
     }
 
     iterator end() const noexcept {
-        return const_cast<std::set<Key, Compare>&>(data).end();
+        return iterator(const_cast<std::set<Key, Compare>&>(data).end(), &data);
     }
 };
 

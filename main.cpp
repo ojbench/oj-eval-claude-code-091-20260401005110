@@ -1,123 +1,43 @@
 #include <iostream>
-#include <set>
-#include <map>
 #include <vector>
-#include <string>
-#include <sstream>
-#include <algorithm>
+#include <unordered_map>
+#include <cstdio>
 
 using namespace std;
 
-class ESet {
-private:
-    map<long long, set<long long>> sets;
-    long long nextId = 0;
+class DSU {
+    unordered_map<long long, long long> parent;
+    unordered_map<long long, long long> sz;
 
 public:
-    // Create a new empty set and return its ID
-    long long create() {
-        sets[nextId] = set<long long>();
-        return nextId++;
-    }
-
-    // Insert an element into a set
-    void insert(long long setId, long long value) {
-        if (sets.find(setId) != sets.end()) {
-            sets[setId].insert(value);
+    long long find(long long x) {
+        if (parent.find(x) == parent.end()) {
+            parent[x] = x;
+            sz[x] = 1;
+            return x;
         }
-    }
-
-    // Remove an element from a set
-    void erase(long long setId, long long value) {
-        if (sets.find(setId) != sets.end()) {
-            sets[setId].erase(value);
+        if (parent[x] != x) {
+            parent[x] = find(parent[x]);
         }
+        return parent[x];
     }
 
-    // Check if an element exists in a set
-    bool contains(long long setId, long long value) {
-        if (sets.find(setId) != sets.end()) {
-            return sets[setId].find(value) != sets[setId].end();
-        }
-        return false;
+    void unite(long long x, long long y) {
+        x = find(x);
+        y = find(y);
+        if (x == y) return;
+
+        if (sz[x] < sz[y]) swap(x, y);
+        parent[y] = x;
+        sz[x] += sz[y];
     }
 
-    // Get the size of a set
-    long long size(long long setId) {
-        if (sets.find(setId) != sets.end()) {
-            return sets[setId].size();
-        }
-        return 0;
+    bool same(long long x, long long y) {
+        return find(x) == find(y);
     }
 
-    // Union of two sets into a new set
-    long long unionSets(long long setId1, long long setId2) {
-        long long newId = create();
-        if (sets.find(setId1) != sets.end() && sets.find(setId2) != sets.end()) {
-            sets[newId] = sets[setId1];
-            for (auto val : sets[setId2]) {
-                sets[newId].insert(val);
-            }
-        }
-        return newId;
-    }
-
-    // Intersection of two sets into a new set
-    long long intersectSets(long long setId1, long long setId2) {
-        long long newId = create();
-        if (sets.find(setId1) != sets.end() && sets.find(setId2) != sets.end()) {
-            set_intersection(sets[setId1].begin(), sets[setId1].end(),
-                           sets[setId2].begin(), sets[setId2].end(),
-                           inserter(sets[newId], sets[newId].begin()));
-        }
-        return newId;
-    }
-
-    // Difference of two sets (setId1 - setId2)
-    long long differenceSets(long long setId1, long long setId2) {
-        long long newId = create();
-        if (sets.find(setId1) != sets.end() && sets.find(setId2) != sets.end()) {
-            set_difference(sets[setId1].begin(), sets[setId1].end(),
-                         sets[setId2].begin(), sets[setId2].end(),
-                         inserter(sets[newId], sets[newId].begin()));
-        }
-        return newId;
-    }
-
-    // Delete a set
-    void deleteSet(long long setId) {
-        sets.erase(setId);
-    }
-
-    // Get minimum element
-    long long getMin(long long setId) {
-        if (sets.find(setId) != sets.end() && !sets[setId].empty()) {
-            return *sets[setId].begin();
-        }
-        return -1;
-    }
-
-    // Get maximum element
-    long long getMax(long long setId) {
-        if (sets.find(setId) != sets.end() && !sets[setId].empty()) {
-            return *sets[setId].rbegin();
-        }
-        return -1;
-    }
-
-    // Print set elements
-    void printSet(long long setId) {
-        if (sets.find(setId) != sets.end()) {
-            bool first = true;
-            for (auto val : sets[setId]) {
-                if (!first) cout << " ";
-                cout << val;
-                first = false;
-            }
-            cout << "\n";
-        } else {
-            cout << "\n";
-        }
+    long long size(long long x) {
+        return sz[find(x)];
     }
 };
 
@@ -125,73 +45,26 @@ int main() {
     ios_base::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    ESet eset;
-    string line;
+    DSU dsu;
+    int q;
+    cin >> q;
 
-    while (getline(cin, line)) {
-        if (line.empty()) continue;
+    while (q--) {
+        int type;
+        cin >> type;
 
-        istringstream iss(line);
-        string cmd;
-        iss >> cmd;
-
-        if (cmd == "CREATE") {
-            cout << eset.create() << "\n";
-        }
-        else if (cmd == "INSERT") {
-            long long setId, value;
-            iss >> setId >> value;
-            eset.insert(setId, value);
-        }
-        else if (cmd == "ERASE") {
-            long long setId, value;
-            iss >> setId >> value;
-            eset.erase(setId, value);
-        }
-        else if (cmd == "CONTAINS") {
-            long long setId, value;
-            iss >> setId >> value;
-            cout << (eset.contains(setId, value) ? "YES" : "NO") << "\n";
-        }
-        else if (cmd == "SIZE") {
-            long long setId;
-            iss >> setId;
-            cout << eset.size(setId) << "\n";
-        }
-        else if (cmd == "UNION") {
-            long long setId1, setId2;
-            iss >> setId1 >> setId2;
-            cout << eset.unionSets(setId1, setId2) << "\n";
-        }
-        else if (cmd == "INTERSECT") {
-            long long setId1, setId2;
-            iss >> setId1 >> setId2;
-            cout << eset.intersectSets(setId1, setId2) << "\n";
-        }
-        else if (cmd == "DIFFERENCE") {
-            long long setId1, setId2;
-            iss >> setId1 >> setId2;
-            cout << eset.differenceSets(setId1, setId2) << "\n";
-        }
-        else if (cmd == "DELETE") {
-            long long setId;
-            iss >> setId;
-            eset.deleteSet(setId);
-        }
-        else if (cmd == "MIN") {
-            long long setId;
-            iss >> setId;
-            cout << eset.getMin(setId) << "\n";
-        }
-        else if (cmd == "MAX") {
-            long long setId;
-            iss >> setId;
-            cout << eset.getMax(setId) << "\n";
-        }
-        else if (cmd == "PRINT") {
-            long long setId;
-            iss >> setId;
-            eset.printSet(setId);
+        if (type == 1) {
+            long long x, y;
+            cin >> x >> y;
+            dsu.unite(x, y);
+        } else if (type == 2) {
+            long long x, y;
+            cin >> x >> y;
+            cout << (dsu.same(x, y) ? 1 : 0) << '\n';
+        } else if (type == 3) {
+            long long x;
+            cin >> x;
+            cout << dsu.size(x) << '\n';
         }
     }
 
